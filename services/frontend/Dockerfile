@@ -18,11 +18,16 @@ COPY jupyter_config.py /etc/jupyter/
 
 USER jovyan
 
+# Dependências gerais (SEM dissmodel)
 COPY requirements.txt /tmp/requirements.txt
 
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
+# 🔥 instala dissmodel local (via volume)
+#RUN pip install -e /opt/dissmodel
+
+# 🔥 remove numba se aparecer
 RUN pip uninstall -y numba llvmlite || true
 
 RUN mkdir -p /home/jovyan/work
