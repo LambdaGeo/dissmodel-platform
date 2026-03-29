@@ -15,6 +15,27 @@ MODELS_DIR   = CONFIGS_PATH / "models"
 # ── Git sync ──────────────────────────────────────────────────────────────────
 
 def sync_configs() -> str:
+    if not CONFIGS_PATH.exists():
+        return "Path de configs não encontrado."
+
+    # Se não houver .git ou o comando git não existir, apenas limpa o cache
+    if not (CONFIGS_PATH / ".git").exists():
+        load_model_spec.cache_clear()
+        return "Modo local: cache limpo."
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(CONFIGS_PATH), "pull", "--ff-only"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            load_model_spec.cache_clear()
+        return result.stdout.strip()
+    except FileNotFoundError:
+        load_model_spec.cache_clear()
+        return "Git não instalado: usando arquivos locais."
+
+def sync_configs____() -> str:
     """
     Tenta sincronizar via git. Se falhar ou não houver git, 
     apenas limpa o cache para uso de arquivos locais.
