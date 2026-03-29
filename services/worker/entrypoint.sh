@@ -1,4 +1,3 @@
-# services/worker/entrypoint.sh
 #!/bin/bash
 
 echo "🔧 DisSModel Worker Starting..."
