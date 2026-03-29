@@ -51,8 +51,9 @@ services:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ./data/outputs:/data/outputs
-      - ./configs:/configs:ro           # ← pasta local em vez de configs-data
-      - ./services/worker:/app/worker   # ← adiciona essa linha
+      - ./configs:/configs:ro          
+      - ./services/worker:/app/worker   
+      - ./services/api:/app
     environment:
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}

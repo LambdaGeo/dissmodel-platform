@@ -15,6 +15,21 @@ CONFIGS_PATH = Path("/configs")
 # ── Registry helpers ──────────────────────────────────────────────────────────
 
 def _git_head() -> str:
+    """Return current HEAD hash of the configs repo, or 'local' if git is missing."""
+    try:
+        # Se a pasta .git não existe, nem tenta rodar o comando
+        if not (CONFIGS_PATH / ".git").exists():
+            return "local-dev"
+
+        return subprocess.check_output(
+            ["git", "-C", str(CONFIGS_PATH), "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Se o comando 'git' não for encontrado ou falhar, retorna 'unknown'
+        return "unknown"
+
+def ____git_head() -> str:
     """Return current HEAD hash of the configs repo."""
     try:
         return subprocess.check_output(

@@ -64,10 +64,10 @@ async def lifespan(app: FastAPI):
     _init_buckets()
 
     # Start background sync of dissmodel-configs
-    _scheduler = start_sync_scheduler(
-        interval_seconds=int(os.getenv("CONFIGS_SYNC_INTERVAL", 900))
-    )
-    logger.info("Config sync scheduler started")
+    #_scheduler = start_sync_scheduler(
+    #    interval_seconds=int(os.getenv("CONFIGS_SYNC_INTERVAL", 900))
+    #)
+    #logger.info("Config sync scheduler started")
 
     yield
 
