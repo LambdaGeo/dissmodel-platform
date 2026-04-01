@@ -1,24 +1,28 @@
 #!/bin/bash
 set -e
 
+# Caminho para um arquivo oculto que indica que a instalação foi concluída
+INSTALL_FLAG="/home/appuser/.cache/pip/.dissmodel_installed"
+
 echo "🔧 DisSModel Worker Starting..."
 
-# 1. Verifica se o volume da biblioteca está montado
 if [ -d "/opt/dissmodel" ]; then
-    # 2. Testa se o Python já consegue importar a dissmodel. 
-    # Se sim, o link simbólico (-e) já está configurado no site-packages.
-    if ! python3 -c "import dissmodel" &> /dev/null; then
-        echo "📦 Installing dissmodel from development volume (first time)..."
-        pip install -e /opt/dissmodel --quiet
-        echo "✅ dissmodel linked successfully."
+    # Só instala se o arquivo 'flag' não existir
+    if [ ! -f "$INSTALL_FLAG" ]; then
+        echo "📦 Installing dissmodel and ALL dependencies (this may take a while)..."
+        
+        # O pip install -e vai ler o setup.py/pyproject.toml e baixar tudo
+        pip install -e /opt/dissmodel
+        
+        # Cria o flag para que no próximo boot ele pule esta etapa
+        touch "$INSTALL_FLAG"
+        echo "✅ dissmodel and dependencies installed successfully."
     else
-        echo "✅ dissmodel already linked. Skipping pip install."
+        echo "✅ Dependencies already cached. Skipping installation."
     fi
 else
-    echo "ℹ️  No development volume found at /opt/dissmodel, using pre-installed version."
+    echo "ℹ️  No development volume found at /opt/dissmodel."
 fi
 
 echo "🚀 Starting worker..."
-
-# 3. Executa como módulo para garantir que os imports relativos de worker.schemas funcionem
 exec python -m worker.worker "$@"
