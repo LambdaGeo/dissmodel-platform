@@ -1,24 +1,33 @@
 #!/bin/bash
 set -e
 
+INSTALL_FLAG="/home/appuser/.cache/pip/.dissmodel_installed"
+# A URL exata da sua branch usando a sintaxe do PIP
+GIT_URL="git+https://github.com/LambdaGeo/dissmodel.git@update-platform"
+
 echo "🔧 DisSModel Worker Starting..."
 
-# 1. Verifica se o volume da biblioteca está montado
+# CENÁRIO 1: Desenvolvimento Local (Mapeamento de Volume no Docker Compose)
 if [ -d "/opt/dissmodel" ]; then
-    # 2. Testa se o Python já consegue importar a dissmodel. 
-    # Se sim, o link simbólico (-e) já está configurado no site-packages.
-    if ! python3 -c "import dissmodel" &> /dev/null; then
-        echo "📦 Installing dissmodel from development volume (first time)..."
-        pip install -e /opt/dissmodel --quiet
-        echo "✅ dissmodel linked successfully."
+    if [ ! -f "$INSTALL_FLAG" ]; then
+        echo "📦 Installing LOCAL dissmodel and dependencies..."
+        pip install -e /opt/dissmodel
+        touch "$INSTALL_FLAG"
+        echo "✅ Local installation complete."
     else
-        echo "✅ dissmodel already linked. Skipping pip install."
+        echo "✅ Local dependencies already cached."
     fi
+
+# CENÁRIO 2: Nuvem/Produção (Sempre baixa da branch update-platform)
 else
-    echo "ℹ️  No development volume found at /opt/dissmodel, using pre-installed version."
+    echo "☁️ Installing dissmodel from GitHub (Branch: update-platform)..."
+    
+    # O --upgrade garante que, se você der restart no container, 
+    # ele vai puxar o commit mais recente dessa branch.
+    pip install "$GIT_URL" --upgrade --no-cache-dir
+    
+    echo "✅ GitHub installation complete."
 fi
 
 echo "🚀 Starting worker..."
-
-# 3. Executa como módulo para garantir que os imports relativos de worker.schemas funcionem
 exec python -m worker.worker "$@"
