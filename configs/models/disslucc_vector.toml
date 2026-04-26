@@ -1,8 +1,8 @@
 
 [model]
 executor_module = "disslucc.infra.executors" 
-name  = "lucc_raster"
-class = "lucc_raster"
+name  = "lucc_vector"
+class = "lucc_vector"
 package = "git+https://github.com/dissmodel/disslucc-continuous@develop"
 
 
