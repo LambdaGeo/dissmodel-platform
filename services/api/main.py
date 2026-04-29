@@ -314,7 +314,7 @@ from datetime import timezone
 
 def _presign_url(bucket: str, key: str, expires_seconds: int = 3600) -> str:
     """Gera presigned URL sem conexão de rede — cálculo local puro."""
-    server_url = os.getenv("MINIO_SERVER_URL", "http://localhost:19000").rstrip("/")
+    server_url = os.getenv("MINIO_URL", "http://localhost:19000").rstrip("/")
     access_key = os.getenv("MINIO_ACCESS_KEY", "inpe_admin")
     secret_key = os.getenv("MINIO_SECRET_KEY", "inpe_secret_2024")
 
