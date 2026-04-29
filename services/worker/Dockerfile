@@ -29,5 +29,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
+RUN git config --global --add safe.directory /configs
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["python", "-m", "worker.worker"]
