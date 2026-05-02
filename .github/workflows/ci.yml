@@ -39,26 +39,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
-
       - name: Install dependencies
         run: |
           pip install mypy
           pip install -r services/api/requirements.txt
           pip install -r services/worker/requirements.txt
-
       - name: Run Mypy
         run: |
-          mypy --ignore-missing-imports \
-            services/worker/base.py \
-            services/worker/registry.py \
-            services/worker/executors/schemas.py \
-            services/worker/executors/testing.py || true
+          # Focamos apenas na lógica da API e Worker da plataforma
+          mypy --ignore-missing-imports services/api/main.py services/worker/worker.py || true
 
 
   security:

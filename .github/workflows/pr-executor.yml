@@ -71,10 +71,11 @@ jobs:
           pip install -r services/worker/requirements.txt
       - name: Run Contract Tests
         run: |
-          export PYTHONPATH=$PWD
+          export PYTHONPATH=$PWD/services
           python -c "
-          from services.worker.executors.testing import ExecutorTestHarness
-          from services.worker.registry import ExecutorRegistry
+          from dissmodel.executor.testing import ExecutorTestHarness
+          from dissmodel.executor.registry import ExecutorRegistry
+          import worker.executors
           import sys
           
           failed = False

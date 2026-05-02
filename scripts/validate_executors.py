@@ -13,8 +13,9 @@ import os
 # então o PYTHONPATH precisa apontar para services/, não para a raiz do repo.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'services'))
 
-from worker.executors.testing import ExecutorTestHarness
-from worker.registry import ExecutorRegistry
+from dissmodel.executor.testing import ExecutorTestHarness
+from dissmodel.executor.registry import ExecutorRegistry
+import worker.executors  # trigger registration of local models
 
 executors = ExecutorRegistry._executors
 
