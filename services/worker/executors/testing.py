@@ -5,10 +5,10 @@ import inspect
 import traceback
 from typing import TYPE_CHECKING
 
-from worker.schemas import DataSource, ExperimentRecord
+from .schemas import DataSource, ExperimentRecord
 
 if TYPE_CHECKING:
-    from worker.base import ModelExecutor
+    from ..base import ModelExecutor
 
 
 class ExecutorTestHarness:

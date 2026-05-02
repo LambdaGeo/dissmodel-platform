@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from worker.base import ModelExecutor
+    from .base import ModelExecutor
 
 
 class ExecutorRegistry:

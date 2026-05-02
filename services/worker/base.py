@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from worker.schemas import ExperimentRecord
+    from .executors.schemas import ExperimentRecord
 
 
 class ModelExecutor(ABC):
