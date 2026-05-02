@@ -41,7 +41,11 @@ class ModelExecutor(ABC):
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         # Importa aqui para evitar circular import entre base e registry
-        from worker.registry import ExecutorRegistry
+        try:
+            from .registry import ExecutorRegistry
+        except ImportError:
+            from worker.registry import ExecutorRegistry
+            
         if hasattr(cls, "name"):
             ExecutorRegistry.register(cls)
 
