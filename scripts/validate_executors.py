@@ -4,10 +4,17 @@
 # Valida que todos os executors registrados passam no contrato ABC.
 #
 # Execução local:
-#   PYTHONPATH=. python3 scripts/validate_executors.py
+#   PYTHONPATH=services python3 scripts/validate_executors.py
 
-from services.worker.executors.testing import ExecutorTestHarness
-from services.worker.registry import ExecutorRegistry
+import sys
+import os
+
+# O código em services/worker usa imports como `from worker.schemas import ...`
+# então o PYTHONPATH precisa apontar para services/, não para a raiz do repo.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'services'))
+
+from worker.executors.testing import ExecutorTestHarness
+from worker.registry import ExecutorRegistry
 
 executors = ExecutorRegistry._executors
 

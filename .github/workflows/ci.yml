@@ -164,7 +164,7 @@ jobs:
             pytest services/worker/tests/
           else
             echo "Sem diretório de testes — validando contratos dos executors..."
-            PYTHONPATH=$PWD python3 scripts/validate_executors.py
+            PYTHONPATH=$PWD/services python3 scripts/validate_executors.py
           fi
 
       - name: Stop services
