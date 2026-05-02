@@ -73,8 +73,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Create .env file
-        run: cp .env.example .env || touch .env
+      - name: Create empty .env file
+        run: touch .env
       - name: Start Redis and MinIO
         run: docker compose up -d redis minio
       - name: Wait for Redis
@@ -108,8 +108,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Create .env file
-        run: cp .env.example .env || touch .env
+      - name: Create empty .env file
+        run: touch .env
       - name: Start Redis
         run: docker compose up -d redis
       - name: Wait for Redis
