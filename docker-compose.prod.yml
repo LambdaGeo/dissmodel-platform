@@ -1,0 +1,191 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: dissmodel-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./services/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - jupyter
+      - api
+      - minio
+    networks:
+      - dissmodel-net
+
+  jupyter:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: dissmodel-jupyter
+    restart: unless-stopped
+    command: ["start-notebook.sh", "--NotebookApp.token=''", "--ServerApp.base_url=/dissmodel/jupyter/"]
+    volumes:
+      - ./workspace:/home/jovyan/work
+      - ./data/inputs:/data/inputs:ro
+      - ./data/outputs:/data/outputs
+      - ./examples:/examples:ro
+      - configs-data:/configs:ro
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-inpe_admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-inpe_secret_2024}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_ENDPOINT=http://api:8000
+      - DISSMODEL_CLOUD=true
+      - JUPYTER_ENABLE_LAB=yes
+    env_file:
+      - .env
+    depends_on:
+      - configs-sync
+    networks:
+      - dissmodel-net
+    # Sobrescreve o healthcheck do Dockerfile para usar a nova base_url
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/dissmodel/jupyter/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: dissmodel-api
+    restart: unless-stopped
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/dissmodel/api"]
+    volumes:
+      - ./data/outputs:/data/outputs
+      - configs-data:/configs:ro
+      - ./services/worker:/app/worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-inpe_admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-inpe_secret_2024}
+      - MINIO_URL=${MINIO_URL:-http://localhost/dissmodel/minio}
+      - WORKER_QUEUE=${WORKER_QUEUE:-dissmodel_jobs}
+      - DISSMODEL_LOG_LEVEL=${DISSMODEL_LOG_LEVEL:-INFO}
+      - API_KEYS=${API_KEYS:-dev-key}
+      - CONFIGS_PATH=/configs
+    env_file:
+      - .env
+    networks:
+      - dissmodel-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      configs-sync:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build:
+      context: ./services/worker
+      dockerfile: Dockerfile
+    container_name: dissmodel-worker
+    restart: unless-stopped
+    volumes:
+      - ./data/inputs:/data/inputs:ro
+      - ./data/outputs:/data/outputs
+      - configs-data:/configs:ro
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-inpe_admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-inpe_secret_2024}
+      - WORKER_QUEUE=${WORKER_QUEUE:-dissmodel_jobs}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-4}
+      - DISSMODEL_LOG_LEVEL=${DISSMODEL_LOG_LEVEL:-INFO}
+      - CONFIGS_PATH=/configs
+    env_file:
+      - .env
+    networks:
+      - dissmodel-net
+    depends_on:
+      - redis
+      - minio
+      - configs-sync
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-01T16-36-33Z
+    container_name: dissmodel-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-inpe_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-inpe_secret_2024}
+      # URL pública do Console do MinIO (suporta subcaminhos)
+      - MINIO_BROWSER_REDIRECT_URL=${MINIO_BROWSER_REDIRECT_URL:-http://localhost/dissmodel/minio/ui}
+    env_file:
+      - .env
+    networks:
+      - dissmodel-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: dissmodel-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - dissmodel-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  configs-sync:
+    image: alpine/git
+    container_name: dissmodel-configs-sync
+    restart: unless-stopped
+    volumes:
+      - configs-data:/configs
+    environment:
+      - CONFIGS_REPO=${CONFIGS_REPO:-}
+      - CONFIGS_BRANCH=${CONFIGS_BRANCH:-main}
+      - CONFIGS_SYNC_INTERVAL=${CONFIGS_SYNC_INTERVAL:-900}
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "if [ -z \"$$CONFIGS_REPO\" ]; then
+        echo 'CONFIGS_REPO not set, skipping sync';
+        sleep infinity;
+       fi;
+       if [ ! -d /configs/.git ]; then
+         git clone --branch $$CONFIGS_BRANCH $$CONFIGS_REPO /configs;
+       fi;
+       while true; do
+         cd /configs && git pull origin $$CONFIGS_BRANCH;
+         sleep $$CONFIGS_SYNC_INTERVAL;
+       done"
+    networks:
+      - dissmodel-net
+
+networks:
+  dissmodel-net:
+    driver: bridge
+    name: dissmodel-prod-network
+
+volumes:
+  minio-data:
+    name: dissmodel-prod-minio-data
+  redis-data:
+    name: dissmodel-prod-redis-data
+  configs-data:
+    name: dissmodel-prod-configs-data
