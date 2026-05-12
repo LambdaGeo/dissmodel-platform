@@ -11,16 +11,23 @@ services:
       - jupyter
       - api
       - minio
+      - streamlit-ca
+      - streamlit-sysdyn
     networks:
       - dissmodel-net
 
+  #sudo chmod -R 775 ./workspace
   jupyter:
     build:
       context: ./services/frontend
       dockerfile: Dockerfile
     container_name: dissmodel-jupyter
     restart: unless-stopped
-    command: ["start-notebook.sh", "--NotebookApp.token=''", "--ServerApp.base_url=/dissmodel/jupyter/"]
+    command:
+      - start-notebook.sh
+      - --ServerApp.base_url=/dissmodel/jupyter/
+      - --ServerApp.token=
+      - --ServerApp.trust_xheaders=True
     volumes:
       - ./workspace:/home/jovyan/work
       - ./data/inputs:/data/inputs:ro
@@ -42,7 +49,6 @@ services:
       - configs-sync
     networks:
       - dissmodel-net
-    # Sobrescreve o healthcheck do Dockerfile para usar a nova base_url
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/dissmodel/jupyter/api"]
       interval: 30s
@@ -117,6 +123,36 @@ services:
       - minio
       - configs-sync
 
+  # ── Streamlit CA Explorer ─────────────────────────────────────────────────
+  streamlit-ca:
+    build:
+      context: ./services/streamlit-ca
+      dockerfile: Dockerfile
+    container_name: dissmodel-streamlit-ca
+    restart: unless-stopped
+    networks:
+      - dissmodel-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/dissmodel/ca/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Streamlit SysDyn Explorer ─────────────────────────────────────────────
+  streamlit-sysdyn:
+    build:
+      context: ./services/streamlit-sysdyn
+      dockerfile: Dockerfile
+    container_name: dissmodel-streamlit-sysdyn
+    restart: unless-stopped
+    networks:
+      - dissmodel-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/dissmodel/sysdyn/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   minio:
     image: minio/minio:RELEASE.2024-01-01T16-36-33Z
     container_name: dissmodel-minio
@@ -127,7 +163,6 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-inpe_admin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-inpe_secret_2024}
-      # URL pública do Console do MinIO (suporta subcaminhos)
       - MINIO_BROWSER_REDIRECT_URL=${MINIO_BROWSER_REDIRECT_URL:-http://localhost/dissmodel/minio/ui}
     env_file:
       - .env
